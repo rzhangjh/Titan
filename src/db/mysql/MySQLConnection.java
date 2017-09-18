@@ -67,20 +67,22 @@ public class MySQLConnection implements DBConnection {
 		}
 	}
 
+	
 	@Override
 	public void unsetFavoriteItems(String userId, List<String> itemIds) {
-		String query = "DELETE FROM history WHERE user_id = ? and item_id = ?";
-		try {
-			PreparedStatement statement = conn.prepareStatement(query);
-			for (String itemId : itemIds) {
-				statement.setString(1, userId);
-				statement.setString(2, itemId);
-				statement.execute();
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
+	    String query = "DELETE FROM history WHERE user_id = ? and item_id = ?";
+	    try {
+	      PreparedStatement statement = conn.prepareStatement(query);
+	      for (String itemId : itemIds) {
+	        statement.setString(1, userId);
+	        statement.setString(2, itemId);
+	        statement.execute();
+	      }
+	    } catch (SQLException e) {
+	      e.printStackTrace();
+	    }		
 	}
+
 
 	@Override
 	public Set<String> getFavoriteItemIds(String userId) {
@@ -218,5 +220,46 @@ public class MySQLConnection implements DBConnection {
 			saveItem(item);
 		}
 		return items;
+	}
+
+	@Override
+	public String getFullname(String userId) {
+		String name = "";
+		try {
+			if (conn == null) {
+				return "";
+			}
+			String sql = "SELECT first_name, last_name from users WHERE user_id = ?";
+			PreparedStatement statement = conn.prepareStatement(sql);
+			statement.setString(1, userId);
+			ResultSet rs = statement.executeQuery();
+			if (rs.next()) {
+				name += String.join(" ", rs.getString("first_name"), rs.getString("last_name"));
+			}
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+		return name;
+	}
+
+	@Override
+	public boolean verifyLogin(String userId, String password) {
+		try {
+			if (conn == null) {
+				return false;
+			}
+
+			String sql = "SELECT user_id from users WHERE user_id = ? and password = ?";
+			PreparedStatement statement = conn.prepareStatement(sql);
+			statement.setString(1, userId);
+			statement.setString(2, password);
+			ResultSet rs = statement.executeQuery();
+			if (rs.next()) {
+				return true;
+			}
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+		return false;
 	}
 }

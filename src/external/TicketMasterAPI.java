@@ -20,7 +20,7 @@ import entity.Item.ItemBuilder;
 public class TicketMasterAPI implements ExternalAPI {
 	private static final String API_HOST = "app.ticketmaster.com";
 	private static final String SEARCH_PATH = "/discovery/v2/events.json";
-	private static final String DEFAULT_TERM = ""; // no restriction
+	private static final String DEFAULT_TERM = "ticket"; // no restriction
 	private static final String API_KEY = "1UHesG215mLrmVXCqTivSe89kUkb6a47";
 
 	/**
@@ -29,12 +29,13 @@ public class TicketMasterAPI implements ExternalAPI {
 	@Override
 	public List<Item> search(double lat, double lon, String term) {
 		String url = "http://" + API_HOST + SEARCH_PATH;
-		String latlong = lat + "," + lon;
+		// Convert geo location to geo hash with a precision of 4 (+- 20km)
+		String geohash = GeoHash.encodeGeohash(lat, lon, 4);
 		if (term == null) {
 			term = DEFAULT_TERM;
 		}
 		term = urlEncodeHelper(term);
-		String query = String.format("apikey=%s&latlong=%s&keyword=%s", API_KEY, latlong, term);
+		String query = String.format("apikey=%s&geoPoint=%s&keyword=%s", API_KEY, geohash, term);
 		try {
 			HttpURLConnection connection = (HttpURLConnection) new URL(url + "?" + query).openConnection();
 			connection.setRequestMethod("GET");
@@ -182,13 +183,17 @@ public class TicketMasterAPI implements ExternalAPI {
 
 	private Set<String> getCategories(JSONObject event) throws JSONException {
 		Set<String> categories = new HashSet<>();
+		if (event.isNull("classifications"))
+			return categories; // ADDED a null checking
 		JSONArray classifications = (JSONArray) event.get("classifications");
 		for (int j = 0; j < classifications.length(); j++) {
 			JSONObject classification = classifications.getJSONObject(j);
 			JSONObject segment = classification.getJSONObject("segment");
 			categories.add(segment.getString("name"));
+
 		}
 		return categories;
+
 	}
 
 	private String getStringFieldOrNull(JSONObject event, String field) throws JSONException {
